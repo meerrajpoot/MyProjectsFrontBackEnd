@@ -1,0 +1,36 @@
+#bg{
+background-color: #779FA1;
+text-align: center;
+margin-top: 4rem;
+}
+#loan{
+    font-size: 4rem;
+}
+#loan-amount , #annual-interest-rate,#loan-term,#monthly-payment{
+    
+    border-radius: .5rem;
+
+}
+label {
+    display: block;
+    margin-bottom: 5px;
+    
+  }
+  input[type="text"] {
+
+    width: 15rem;
+    padding: 5px;
+    margin-bottom: 10px;
+  }
+  button {
+    padding: 10px 10px;
+    background-color: #23272b;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 1rem;
+  }
+  button:hover {
+    background-color: #0056b3;
+    color: black;
+  }
