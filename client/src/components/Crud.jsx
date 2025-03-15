@@ -8,64 +8,148 @@ function MyCrud() {
   const [newTask, setNewTask] = useState("");
   const [filter, setFilter] = useState("all");
   const [editingTaskId, setEditingTaskId] = useState(null);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchTasks();
   }, []);
 
+  // Clear message after 3 seconds
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        setSuccess("");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  // Clear error after 3 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError("");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   const fetchTasks = async () => {
-    const response = await axios.get("http://localhost:5000/tasks");
-    setTasks(response.data);
+    try {
+      const response = await axios.get("http://localhost:5000/tasks");
+      if (response.data.success) {
+        setTasks(response.data.data);
+        setSuccess(response.data.message);
+      } else {
+        setError("Failed to load tasks. Please try again.");
+      }
+    } catch (err) {
+      console.error("Error fetching tasks:", err);
+      setError(
+        err.response?.data?.message || "Failed to load tasks. Please try again."
+      );
+    }
   };
 
   const handleSubmit = async () => {
-    if (newTask.trim() === "") return;
-
-    if (editingTaskId) {
-      // Update existing task
-      const response = await axios.put(
-        `http://localhost:5000/tasks/${editingTaskId}`,
-        {
-          title: newTask,
-        }
-      );
-
-      setTasks(
-        tasks.map((task) => (task._id === editingTaskId ? response.data : task))
-      );
-      setEditingTaskId(null);
-    } else {
-      // Add new task
-      const response = await axios.post("http://localhost:5000/tasks", {
-        title: newTask,
-        completed: false,
-      });
-      setTasks([...tasks, response.data]);
+    if (newTask.trim() === "") {
+      setError("Task cannot be empty!");
+      return;
     }
 
-    setNewTask("");
+    try {
+      if (editingTaskId) {
+        // Update existing task
+        const response = await axios.put(
+          `http://localhost:5000/tasks/${editingTaskId}`,
+          {
+            title: newTask,
+          }
+        );
+
+        if (response.data.success) {
+          setTasks(
+            tasks.map((task) =>
+              task._id === editingTaskId ? response.data.data : task
+            )
+          );
+          setEditingTaskId(null);
+          setSuccess(response.data.message);
+        } else {
+          setError(response.data.message);
+        }
+      } else {
+        // Add new task
+        const response = await axios.post("http://localhost:5000/tasks", {
+          title: newTask,
+          completed: false,
+        });
+
+        if (response.data.success) {
+          setTasks([...tasks, response.data.data]);
+          setSuccess(response.data.message);
+        } else {
+          setError(response.data.message);
+        }
+      }
+
+      setNewTask("");
+    } catch (err) {
+      console.error("Error submitting task:", err);
+      setError(
+        err.response?.data?.message ||
+          (editingTaskId ? "Failed to update task." : "Failed to add task.")
+      );
+    }
   };
 
   const updateTask = async (id, completed) => {
-    const response = await axios.put(`http://localhost:5000/tasks/${id}`, {
-      completed: !completed,
-    });
-    setTasks(tasks.map((task) => (task._id === id ? response.data : task)));
+    try {
+      const response = await axios.put(`http://localhost:5000/tasks/${id}`, {
+        completed: !completed,
+      });
+
+      if (response.data.success) {
+        setTasks(
+          tasks.map((task) => (task._id === id ? response.data.data : task))
+        );
+        setSuccess(response.data.message);
+      } else {
+        setError(response.data.message);
+      }
+    } catch (err) {
+      console.error("Error updating task:", err);
+      setError(err.response?.data?.message || "Failed to update task status.");
+    }
   };
 
   const startEditing = (task) => {
     setNewTask(task.title);
     setEditingTaskId(task._id);
+    setSuccess("Ready to edit task!");
   };
 
   const cancelEditing = () => {
     setEditingTaskId(null);
     setNewTask("");
+    setSuccess("Edit cancelled.");
   };
 
   const deleteTask = async (id) => {
-    await axios.delete(`http://localhost:5000/tasks/${id}`);
-    setTasks(tasks.filter((task) => task._id !== id));
+    try {
+      const response = await axios.delete(`http://localhost:5000/tasks/${id}`);
+
+      if (response.data.success) {
+        setTasks(tasks.filter((task) => task._id !== id));
+        setSuccess(response.data.message);
+      } else {
+        setError(response.data.message);
+      }
+    } catch (err) {
+      console.error("Error deleting task:", err);
+      setError(err.response?.data?.message || "Failed to delete task.");
+    }
   };
 
   const filteredTasks = tasks.filter((task) => {
@@ -79,6 +163,21 @@ function MyCrud() {
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md">
         <h1 className="text-3xl font-bold text-center mb-6">Task Manager</h1>
+
+        {/* Success Message */}
+        {success && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
+            <span className="block sm:inline">{success}</span>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+            <span className="block sm:inline">{error}</span>
+          </div>
+        )}
+
         <div className="flex mb-6">
           <input
             type="text"
